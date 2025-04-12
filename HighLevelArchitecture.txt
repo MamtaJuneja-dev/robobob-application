@@ -1,0 +1,148 @@
+High Level Architecture:
+========================
+
+1. Client Layer:
+-----------------------------
+
+-> Mobile App/ Web App : The users interact with the RoboBob system through a mobile or web application. The app can either directly query the backend API or inteact via a REST API.
+
+-> Authentication: Users need to log in or register. This will require an identity service to authenticate and authorize users.
+
+2. API Layer (API Gateway)
+-----------------------------------------
+
+API Gateway: The API Gateway will act as the entry point for all requests coming from the clients. (mobile/web) It handles.
+
+-Routing to appropriate microservices
+-Rate limiting to prevent abuse
+-Authentication and Authorization (OAUTH, JWT Tokens)
+-Load balancing to distribute traffic evenly across backend services.
+
+Technologies: AWS API Gateway, NGINX or Kong
+
+3. Service Layer
+--------------------------------
+-> User Service: Handles user authentication, authorization, registration and user profile management. It will interact with a User Database.
+-> Question and Answer Service: Responsible for processing questions from users and generating answers (via the logic implemented in RoboBob). This service also interacts with the Historical Record Database
+
+Record Database: The service processes basic questions about RoboBob and arithmetic queries.
+
+Historical Record Service: Manages the logging and retrieval of historical questions and answers for each user. Each interaction is recorded for future access.
+
+Techonologies: Spring Boot , Node.js, Golang
+
+4. Database Layer
+--------------------------
+User Database: Stores user credentials, user profies and any relevant metadata(eg. preferences) User a relational database like PostgreSQL or MySQL
+
+-Historical Record Database: Stores records all questions and answers from users. It can be stored in a NoSQL database like MongoDB or a relational database.
+
+-> To scale you can share data based on user IDs, ensuring quick retrieval of past questions.
+
+5. Cache Layer
+----------------------------
+-> To speed up response times, frequently asked questions or repetitive queries can be cached using Redis or Memcached. This layer will serve cached results instead of querying the database for every request.
+
+-> Redis can also be used for caching session information for authenticated users.
+
+6. Search/Indexing Layer
+=========================
+-> If the historical questions logs needs to be searchable (eg, users want to search past questions) integrating an indexing layer.
+
+-> Elasticsearch can be used to index questions and answers, providing quick and efficient full-text search capabilities.
+
+7. Queue Layer
+=====================
+
+-> User kafka or RabbitMQ to manage requests that need to be processed asynchronously, such as logging interactions or executing long running tasks (eg sending notifications or reports)
+-> This decouples the heavy tasks from the user-facing services, ensuring they remain responsive.
+
+8. Analytics and Monioring layer
+===================================
+-> Prometheus or Grafana for monitoring system health, response times and traffic
+-> ELK Stack (Elasticsearch, Logstash, Kibana) for logging and detailed analytics
+-> Use Google Analytics, New Relic or Datadog to monitor API usage and user behaviour
+
+
+
+Deployment Strategy:
+===============================
+1 Cloud Infrastructure:
+
+-> AWS/GCP/Azure for hosting the application. You can leverage cloud services like compute instances, auto-scaling groups, managed databases and more.
+
+-> Containerization: Use Docker for containerizing microservices. This makes it easier to scale and deploy the service on any cloud platform.
+
+-> Orchestration: USe Kubernetes or AWS ECS for container orchestration. K8s helps manage scaling, load balancing and service discovery.
+
+2. High Availability and Load Balancing
+=============================================
+
+-Deploy the system across multiple AZ or Regions to ensure high availability.
+-Use load balances to distribute incoming requests among multiple instances of the microservices, ensuring no single point of failure.
+-Auto-scaling: implement auto-scaling to add or remove instances based on traffic. This will ensure efficient resource usage during traffic spikes and reduce costs during low traffic periods.
+
+3. Continuous Deployment (CD) and Monitoring
+==============================================
+- CI/CD Pipeline : Use Jenkins, Git Lab CI or GitHub Actions for continuous integration and deployment. This ensures automated testing and rapid deployment of new features and fixes.
+
+-Rolling Updates: Use Blue/Green Deployment or Canary release to deploy new versions of the app with zero downtime and roll back quickly in case of issues.
+
+-Disaster Recovery: Regular backups of databases and logs . USe multi-region deployments for resilience against regional failures.
+
+
+
+                +-------------------+
+                |   Mobile/Web App  | <- Client Layer
+                +-------------------+
+                         |
+                         v
+               +---------------------+
+               |     API Gateway     | <- Handles routing, authentication, rate-limiting
+               +---------------------+
+                         |
+     +-------------------+-------------------+
+     |                   |                   |
+     v                   v                   v
++-------------+   +-----------------+   +-----------------------+
+| User Service|   | QA Service      |   | Historical Record DB  |
+|             |   | (Robobob Logic) |   | (MongoDB/PostgreSQL)  |
++-------------+   +-----------------+   +-----------------------+
+                         |
+                         v
+                    +---------------------+
+                    |     Cache (Redis)   | <- Caching frequently requested data
+                    +---------------------+
+                         |
+                         v
+                 +-----------------------+
+                 | Search/Indexing Layer | <- Elasticsearch for querying history
+                 +-----------------------+
+
+
+
+Traffic Flow:
+
+1 User request: A user sends a request via the mobile/web app
+
+2. API Gateway: The request is routed by the API Gateway to the appropriate MS(either user Service, QA Service or Historical Record Service)
+
+3. QA Service: If it's a query about RoboBob, it gets processed and the answer is returned.
+
+4. Historical Record Service: If it's a request to retrieve past questions, this service fetches the history from the database.
+
+5. Database: Data is read from or written to the User Database or Historical Record Database. Caching is used to speed up frequently asked questions.
+
+
+
+Scalability considerations:
+
+Horizontal Scaling: MS can scale horizontally by adding more instances based on traffic
+
+Auto scaling: Cloud based auto scaling adjusts resources dynamically based on real time demand
+
+Database Sharding: For large datasets, databases can be sharded to distribute load and ensure quicker access to data
+
+Distributed Caching: Redis or Memcached caches will help with reducing database load and speed up repetitive queries.
+
+
