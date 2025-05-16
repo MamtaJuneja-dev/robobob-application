@@ -1,11 +1,11 @@
 package com.robobob.service;
 
 
-import com.robobob.cacheConfiguration.CacheLoader;
 import com.robobob.repository.QuestionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import net.objecthunter.exp4j.Expression;
 import net.objecthunter.exp4j.ExpressionBuilder;
@@ -17,7 +17,7 @@ public class RoboBobService {
 
     @Autowired
     private final QuestionRepository questionRepository;
-    CacheLoader cacheLoader = new CacheLoader(2);
+    //CacheLoader cacheLoader = new CacheLoader(2);
 
     public RoboBobService(QuestionRepository questionRepository) {
         this.questionRepository = questionRepository;
@@ -26,15 +26,12 @@ public class RoboBobService {
 
     }
 
+    @Cacheable(value = "questionCache", key = "#question")
     public String handleQuestion(String question) {
-
-        cacheLoader.displaycache();
-        cacheLoader.getFromCache(question);
        logger.info("Checking for predefined Question");
         String answer = questionRepository.getAnswer(question);
         if (answer != null) {
-            cacheLoader.loadCache(question,answer);
-            return answer;
+            return answer;  // Will be automatically cached due to @Cacheable
         }
 
         logger.info("The question asked is arithematic");
@@ -46,11 +43,11 @@ public class RoboBobService {
         }
     }
 
+    @Cacheable(value = "arithmeticCache", key = "#expression")
     private String evaluateArithmeticExpression(String expression)  {
         try {
             Expression e = new ExpressionBuilder(expression).build();
             double result = e.evaluate();
-            cacheLoader.loadCache(expression,String.valueOf(result));
             return String.valueOf(result);
         } catch (Exception ex) {
             logger.error("There was error evaluating the question " + ex.getMessage());

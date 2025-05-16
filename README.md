@@ -38,7 +38,7 @@ Response: 22.0
 # Caching Behaviour:
 
 -First time a question is asked, it is loaded and cached.
--Repeated requests are served from the in-memory cache.
+-Repeated requests are served from the Spring-Boot cache.
 
 # Future Enhancements:
 
